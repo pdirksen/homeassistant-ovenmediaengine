@@ -1,5 +1,7 @@
 # OvenMediaEngine — Home Assistant integration
 
+<p align="center"><img src="icons/logo.png" alt="OvenMediaEngine" height="96"></p>
+
 A custom [HACS](https://hacs.xyz/) integration that polls the
 [OvenMediaEngine](https://github.com/AirenSoft/OvenMediaEngine) (OME) REST API v1 and exposes its live
 statistics as Home Assistant sensors.
@@ -72,6 +74,15 @@ curl -u "<ACCESS_TOKEN>" \
 ```
 
 (`curl -u` happens to base64 the colon-containing token the same way OME wants, so it is a faithful check.)
+
+## Icons / branding
+
+The artwork lives in [`icons/`](icons/) (`icon.png` 256×256, `icon@2x.png` 512×512, plus `logo.png`/`logo@2x.png`).
+
+Home Assistant only shows an integration icon if it is published in the
+[home-assistant/brands](https://github.com/home-assistant/brands) repository. To get the icon to appear in the
+HA UI / HACS, submit these files there under `custom_integrations/ovenmediaengine/` (`icon.png` + `icon@2x.png`,
+transparent, trimmed to content). Until then the icon still renders on this GitHub page.
 
 ## Security
 
