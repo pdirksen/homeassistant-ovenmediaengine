@@ -1,0 +1,47 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to OvenMediaEngine",
+        "description": "Enter the OME REST API host, port and access token (from Server.xml <AccessToken>).",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "access_token": "Access token",
+          "use_tls": "Use HTTPS (TLS)",
+          "verify_ssl": "Verify SSL certificate"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate OvenMediaEngine",
+        "description": "The access token was rejected. Enter the current credentials.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "access_token": "Access token",
+          "use_tls": "Use HTTPS (TLS)",
+          "verify_ssl": "Verify SSL certificate"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the server.",
+      "invalid_auth": "Invalid access token.",
+      "unknown": "Unexpected error."
+    },
+    "abort": {
+      "already_configured": "This server is already configured.",
+      "reauth_successful": "Re-authentication was successful."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "OvenMediaEngine options",
+        "data": {
+          "scan_interval": "Update interval (seconds)"
+        }
+      }
+    }
+  }
+}
