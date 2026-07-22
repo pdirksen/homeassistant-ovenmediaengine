@@ -24,20 +24,19 @@ def _device_id(entry_id: str, key: str) -> str:
     return f"{entry_id}:{key}"
 
 
-def server_device_info(
-    entry_id: str, host: str, port: int
-) -> DeviceInfo:
+def server_device_info(entry_id: str, base_url: str) -> DeviceInfo:
     """DeviceInfo for the top-level server device."""
+    display = base_url.removeprefix("https://").removeprefix("http://")
     return DeviceInfo(
         identifiers={(DOMAIN, _device_id(entry_id, "server"))},
         manufacturer=MANUFACTURER,
         model=MODEL_SERVER,
-        name=f"OvenMediaEngine ({host}:{port})",
-        configuration_url=f"http://{host}:{port}",
+        name=f"OvenMediaEngine ({display})",
+        configuration_url=base_url,
     )
 
 
-def object_device_info(entry_id: str, host: str, port: int, obj: OmeObject) -> DeviceInfo:
+def object_device_info(entry_id: str, obj: OmeObject) -> DeviceInfo:
     """Build a DeviceInfo for an OME object, chained via via_device."""
     if obj.kind == KIND_VHOST:
         return DeviceInfo(
@@ -80,11 +79,7 @@ class OmeEntity(CoordinatorEntity[OmeDataUpdateCoordinator]):
         super().__init__(coordinator)
         self._obj = obj
         entry = coordinator.config_entry
-        host = entry.data["host"]
-        port = entry.data["port"]
-        self._attr_device_info = object_device_info(
-            entry.entry_id, host, port, obj
-        )
+        self._attr_device_info = object_device_info(entry.entry_id, obj)
 
     @property
     def available(self) -> bool:

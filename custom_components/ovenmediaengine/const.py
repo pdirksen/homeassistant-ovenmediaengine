@@ -7,17 +7,17 @@ from datetime import timedelta
 DOMAIN = "ovenmediaengine"
 
 # Config entry / flow keys
-CONF_HOST = "host"
-CONF_PORT = "port"
-CONF_USE_TLS = "use_tls"
+CONF_BASE_URL = "base_url"
 CONF_ACCESS_TOKEN = "access_token"
 CONF_VERIFY_SSL = "verify_ssl"
 CONF_SCAN_INTERVAL = "scan_interval"
 
+# Legacy (version 1) config entry keys, kept for migration only
+CONF_HOST = "host"
+CONF_PORT = "port"
+CONF_USE_TLS = "use_tls"
+
 # Defaults
-DEFAULT_PORT = 8081
-DEFAULT_TLS_PORT = 8082
-DEFAULT_USE_TLS = False
 DEFAULT_VERIFY_SSL = True
 DEFAULT_SCAN_INTERVAL = 30
 MIN_SCAN_INTERVAL = 5

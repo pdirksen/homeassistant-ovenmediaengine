@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import logging
 from typing import Any
 
 import voluptuous as vol
@@ -15,36 +16,38 @@ from homeassistant.config_entries import (
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import OmeApiClient, OmeAuthError, OmeConnectionError
+from .api import (
+    OmeApiClient,
+    OmeApiError,
+    OmeAuthError,
+    OmeConnectionError,
+    normalize_base_url,
+)
 from .const import (
     CONF_ACCESS_TOKEN,
-    CONF_HOST,
-    CONF_PORT,
+    CONF_BASE_URL,
     CONF_SCAN_INTERVAL,
-    CONF_USE_TLS,
     CONF_VERIFY_SSL,
-    DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
-    DEFAULT_USE_TLS,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
     MIN_SCAN_INTERVAL,
 )
 from .coordinator import OmeConfigEntry
 
+_LOGGER = logging.getLogger(__name__)
+
 
 def _user_schema(defaults: Mapping[str, Any]) -> vol.Schema:
     """Build the user/reauth form schema."""
     return vol.Schema(
         {
-            vol.Required(CONF_HOST, default=defaults.get(CONF_HOST, "")): str,
-            vol.Required(CONF_PORT, default=defaults.get(CONF_PORT, DEFAULT_PORT)): int,
+            vol.Required(
+                CONF_BASE_URL, default=defaults.get(CONF_BASE_URL, "")
+            ): str,
             vol.Required(
                 CONF_ACCESS_TOKEN, default=defaults.get(CONF_ACCESS_TOKEN, "")
             ): str,
-            vol.Required(
-                CONF_USE_TLS, default=defaults.get(CONF_USE_TLS, DEFAULT_USE_TLS)
-            ): bool,
             vol.Required(
                 CONF_VERIFY_SSL,
                 default=defaults.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
@@ -60,9 +63,7 @@ async def _validate(hass, data: Mapping[str, Any]) -> dict[str, str]:
     )
     api = OmeApiClient(
         session=session,
-        host=data[CONF_HOST],
-        port=data[CONF_PORT],
-        use_tls=data.get(CONF_USE_TLS, DEFAULT_USE_TLS),
+        base_url=data[CONF_BASE_URL],
         access_token=data[CONF_ACCESS_TOKEN],
         verify_ssl=data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
     )
@@ -70,9 +71,10 @@ async def _validate(hass, data: Mapping[str, Any]) -> dict[str, str]:
         await api.async_validate()
     except OmeAuthError:
         return {"base": "invalid_auth"}
-    except OmeConnectionError:
+    except (OmeConnectionError, OmeApiError):
         return {"base": "cannot_connect"}
     except Exception:  # noqa: BLE001 - surface any unexpected failure to the user
+        _LOGGER.exception("Unexpected error validating OME connection")
         return {"base": "unknown"}
     return {}
 
@@ -80,7 +82,7 @@ async def _validate(hass, data: Mapping[str, Any]) -> dict[str, str]:
 class OmeConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle the OvenMediaEngine config flow."""
 
-    VERSION = 1
+    VERSION = 2
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -88,14 +90,14 @@ class OmeConfigFlow(ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            await self.async_set_unique_id(
-                f"{user_input[CONF_HOST]}:{user_input[CONF_PORT]}"
-            )
+            base_url = normalize_base_url(user_input[CONF_BASE_URL])
+            user_input[CONF_BASE_URL] = base_url
+            await self.async_set_unique_id(base_url)
             self._abort_if_unique_id_configured()
             errors = await _validate(self.hass, user_input)
             if not errors:
                 return self.async_create_entry(
-                    title=f"{user_input[CONF_HOST]}:{user_input[CONF_PORT]}",
+                    title=base_url.removeprefix("https://").removeprefix("http://"),
                     data=user_input,
                 )
         return self.async_show_form(

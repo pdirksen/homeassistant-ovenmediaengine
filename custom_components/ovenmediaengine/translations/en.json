@@ -3,12 +3,10 @@
     "step": {
       "user": {
         "title": "Connect to OvenMediaEngine",
-        "description": "Enter the OME REST API host, port and access token (from Server.xml <AccessToken>).",
+        "description": "Enter the base URL of the OME REST API (e.g. https://restreamer.example.com/api or http://192.168.1.10:8081) and the access token (the AccessToken value from Server.xml). Without a scheme, http:// is assumed.",
         "data": {
-          "host": "Host",
-          "port": "Port",
+          "base_url": "Base URL",
           "access_token": "Access token",
-          "use_tls": "Use HTTPS (TLS)",
           "verify_ssl": "Verify SSL certificate"
         }
       },
@@ -16,16 +14,14 @@
         "title": "Re-authenticate OvenMediaEngine",
         "description": "The access token was rejected. Enter the current credentials.",
         "data": {
-          "host": "Host",
-          "port": "Port",
+          "base_url": "Base URL",
           "access_token": "Access token",
-          "use_tls": "Use HTTPS (TLS)",
           "verify_ssl": "Verify SSL certificate"
         }
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to the server.",
+      "cannot_connect": "Failed to connect to the server. Check the base URL points at the OME REST API.",
       "invalid_auth": "Invalid access token.",
       "unknown": "Unexpected error."
     },

@@ -26,22 +26,32 @@ class OmeConnectionError(OmeApiError):
     """The server could not be reached."""
 
 
+def normalize_base_url(base_url: str) -> str:
+    """Normalise a user-supplied base URL.
+
+    Accepts values like ``restreamer.example.com/api``,
+    ``https://restreamer.example.com/api`` or ``http://192.168.1.10:8081``.
+    A missing scheme defaults to ``http://``; trailing slashes are stripped.
+    """
+    url = base_url.strip().rstrip("/")
+    if "://" not in url:
+        url = f"http://{url}"
+    return url
+
+
 class OmeApiClient:
     """Minimal read-only client for OvenMediaEngine stats."""
 
     def __init__(
         self,
         session: aiohttp.ClientSession,
-        host: str,
-        port: int,
-        use_tls: bool,
+        base_url: str,
         access_token: str,
         verify_ssl: bool = True,
     ) -> None:
         """Initialise the client."""
         self._session = session
-        scheme = "https" if use_tls else "http"
-        self._base_url = f"{scheme}://{host}:{port}/v1"
+        self._base_url = f"{normalize_base_url(base_url)}/v1"
         # OME expects the *entire* access token base64-encoded as Basic auth.
         # The token itself may contain a ':' which must NOT be treated as a
         # user/password separator, so we encode the raw string ourselves.
@@ -61,7 +71,8 @@ class OmeApiClient:
                 resp = await self._session.get(
                     url, headers=self._headers, ssl=self._verify_ssl
                 )
-        except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as err:
+            # ValueError covers aiohttp.InvalidURL for malformed base URLs.
             raise OmeConnectionError(f"Error connecting to {url}: {err}") from err
 
         if resp.status == 401:
@@ -71,7 +82,14 @@ class OmeApiClient:
         if resp.status >= 400:
             raise OmeApiError(f"Unexpected status {resp.status} for {path}")
 
-        payload = await resp.json(content_type=None)
+        try:
+            payload = await resp.json(content_type=None)
+        except (aiohttp.ClientError, ValueError) as err:
+            # Non-JSON body (e.g. a reverse proxy serving HTML at this URL).
+            raise OmeConnectionError(
+                f"Response from {url} is not valid JSON — is the base URL "
+                f"pointing at the OME REST API?"
+            ) from err
         # Responses are wrapped as {statusCode, message, response}.
         if isinstance(payload, dict) and "response" in payload:
             return payload["response"]

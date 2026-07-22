@@ -7,22 +7,39 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import OmeApiClient
+from .api import OmeApiClient, normalize_base_url
 from .entity import server_device_info
 from .const import (
     CONF_ACCESS_TOKEN,
+    CONF_BASE_URL,
     CONF_HOST,
     CONF_PORT,
     CONF_SCAN_INTERVAL,
     CONF_USE_TLS,
     CONF_VERIFY_SSL,
     DEFAULT_SCAN_INTERVAL,
-    DEFAULT_USE_TLS,
     DEFAULT_VERIFY_SSL,
 )
 from .coordinator import OmeConfigEntry, OmeDataUpdateCoordinator
 
 PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: OmeConfigEntry) -> bool:
+    """Migrate old config entries (host/port/use_tls -> base_url)."""
+    if entry.version > 2:
+        # Downgrade from a future version; nothing we can do.
+        return False
+    if entry.version == 1:
+        data = dict(entry.data)
+        scheme = "https" if data.pop(CONF_USE_TLS, False) else "http"
+        host = data.pop(CONF_HOST)
+        port = data.pop(CONF_PORT)
+        data[CONF_BASE_URL] = normalize_base_url(f"{scheme}://{host}:{port}")
+        hass.config_entries.async_update_entry(
+            entry, data=data, version=2, unique_id=data[CONF_BASE_URL]
+        )
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: OmeConfigEntry) -> bool:
@@ -32,9 +49,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: OmeConfigEntry) -> bool:
     )
     api = OmeApiClient(
         session=session,
-        host=entry.data[CONF_HOST],
-        port=entry.data[CONF_PORT],
-        use_tls=entry.data.get(CONF_USE_TLS, DEFAULT_USE_TLS),
+        base_url=entry.data[CONF_BASE_URL],
         access_token=entry.data[CONF_ACCESS_TOKEN],
         verify_ssl=entry.data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
     )
@@ -49,9 +64,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: OmeConfigEntry) -> bool:
     # (which point at it via via_device) have a valid parent.
     dr.async_get(hass).async_get_or_create(
         config_entry_id=entry.entry_id,
-        **server_device_info(
-            entry.entry_id, entry.data[CONF_HOST], entry.data[CONF_PORT]
-        ),
+        **server_device_info(entry.entry_id, entry.data[CONF_BASE_URL]),
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

@@ -53,10 +53,8 @@ Copy `custom_components/ovenmediaengine` into your HA `config/custom_components/
 
 | Field | Example | Notes |
 |-------|---------|-------|
-| Host | `<SERVER>` | OME host |
-| Port | `<PORT>` | host-side API port (`8081` default OME) |
+| Base URL | `https://restreamer.example.com/api` or `http://<SERVER>:8081` | full URL of the OME REST API, including scheme, optional port and optional path (reverse-proxy setups). Without a scheme, `http://` is assumed. Do **not** include `/v1` — it is appended automatically. |
 | Access token | `<ACCESS_TOKEN>` | from `Server.xml`; the value may contain a `:` — paste it whole |
-| Use HTTPS (TLS) | off | enable for the `8082` TLS API |
 | Verify SSL certificate | on | disable only for self-signed certs |
 
 The update interval (default **30 s**) can be changed later via the integration's **Configure** (options).
@@ -68,9 +66,9 @@ The update interval (default **30 s**) can be changed later via the integration'
 ## Verify the API by hand
 
 ```bash
-curl -u "<ACCESS_TOKEN>" http://<SERVER>:<PORT>/v1/vhosts
+curl -u "<ACCESS_TOKEN>" <BASE_URL>/v1/vhosts
 curl -u "<ACCESS_TOKEN>" \
-  http://<SERVER>:<PORT>/v1/stats/current/vhosts/default/apps/app
+  <BASE_URL>/v1/stats/current/vhosts/default/apps/app
 ```
 
 (`curl -u` happens to base64 the colon-containing token the same way OME wants, so it is a faithful check.)
