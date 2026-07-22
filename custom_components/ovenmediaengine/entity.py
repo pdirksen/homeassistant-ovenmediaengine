@@ -6,13 +6,13 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
+    CONF_BASE_URL,
     DOMAIN,
     KIND_APP,
     KIND_STREAM,
     KIND_VHOST,
     MANUFACTURER,
     MODEL_APP,
-    MODEL_SERVER,
     MODEL_STREAM,
     MODEL_VHOST,
 )
@@ -24,27 +24,23 @@ def _device_id(entry_id: str, key: str) -> str:
     return f"{entry_id}:{key}"
 
 
-def server_device_info(entry_id: str, base_url: str) -> DeviceInfo:
-    """DeviceInfo for the top-level server device."""
-    display = base_url.removeprefix("https://").removeprefix("http://")
-    return DeviceInfo(
-        identifiers={(DOMAIN, _device_id(entry_id, "server"))},
-        manufacturer=MANUFACTURER,
-        model=MODEL_SERVER,
-        name=f"OvenMediaEngine ({display})",
-        configuration_url=base_url,
-    )
+def object_device_info(
+    entry_id: str, base_url: str, obj: OmeObject
+) -> DeviceInfo:
+    """Build a DeviceInfo for an OME object, chained via via_device.
 
-
-def object_device_info(entry_id: str, obj: OmeObject) -> DeviceInfo:
-    """Build a DeviceInfo for an OME object, chained via via_device."""
+    There is no separate top-level "server" device: with a single vhost
+    (the common case) that device would carry no entities of its own, so
+    the vhost device is the root of the hierarchy instead and carries the
+    configuration_url link to the API.
+    """
     if obj.kind == KIND_VHOST:
         return DeviceInfo(
             identifiers={(DOMAIN, _device_id(entry_id, obj.key))},
             manufacturer=MANUFACTURER,
             model=MODEL_VHOST,
             name=f"vHost {obj.vhost}",
-            via_device=(DOMAIN, _device_id(entry_id, "server")),
+            configuration_url=base_url,
         )
     if obj.kind == KIND_APP:
         parent = OmeObject(KIND_VHOST, obj.vhost, None, None)
@@ -79,7 +75,9 @@ class OmeEntity(CoordinatorEntity[OmeDataUpdateCoordinator]):
         super().__init__(coordinator)
         self._obj = obj
         entry = coordinator.config_entry
-        self._attr_device_info = object_device_info(entry.entry_id, obj)
+        self._attr_device_info = object_device_info(
+            entry.entry_id, entry.data[CONF_BASE_URL], obj
+        )
 
     @property
     def available(self) -> bool:

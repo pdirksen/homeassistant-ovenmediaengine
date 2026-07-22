@@ -4,11 +4,9 @@ from __future__ import annotations
 
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import OmeApiClient, normalize_base_url
-from .entity import server_device_info
 from .const import (
     CONF_ACCESS_TOKEN,
     CONF_BASE_URL,
@@ -59,13 +57,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: OmeConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
 
     entry.runtime_data = coordinator
-
-    # Register the top-level server device so child vhost/app/stream devices
-    # (which point at it via via_device) have a valid parent.
-    dr.async_get(hass).async_get_or_create(
-        config_entry_id=entry.entry_id,
-        **server_device_info(entry.entry_id, entry.data[CONF_BASE_URL]),
-    )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))

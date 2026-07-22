@@ -42,7 +42,6 @@ CONNECTION_PROTOCOLS = (
 )
 
 MANUFACTURER = "AirenSoft"
-MODEL_SERVER = "OvenMediaEngine Server"
 MODEL_VHOST = "Virtual Host"
 MODEL_APP = "Application"
 MODEL_STREAM = "Stream"
